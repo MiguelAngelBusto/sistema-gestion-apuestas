@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Betflow - Control Financiero</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .grid-layout { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 12px; border: 1px solid #333; }
+        h3 { color: #007bff; margin-top: 0; font-size: 1rem; text-transform: uppercase; }
+        .btn-back { background: #333; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; color: #777; font-size: 0.8rem; padding-bottom: 10px; }
+        td { padding: 12px 0; border-bottom: 1px solid #2a2a2a; }
+        .pos { color: #4caf50; font-weight: bold; }
+        .neg { color: #f44336; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Control Financiero</h1>
+            <div>
+                <a href="home.html" class="btn-back">← Inicio</a>
+            <button onclick="restaurarVistaGlobal()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+            ← Volver a Vista Global
+            </button>
+            </div>
+        </div>
+        <div id="view-controls" style="margin-bottom: 15px; display: none;">
+        
+        <span id="titulo-vista" style="margin-left: 15px; font-weight: bold; color: #aaa;"></span>
+         </div>
+        <div class="grid-layout">
+            <div class="card">
+                <h3>Crecimiento del Bankroll (Acumulado)</h3>
+                <div style="height: 400px;">
+                    <canvas id="chartEvolucion"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Balance Mensual</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>MES</th>
+                            <th style="text-align: right;">GANANCIA/PÉRDIDA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-mensual">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let todasLasApuestas = [];
+        let chartInstance = null;
+
+        window.onload = async () => {
+            const userId = localStorage.getItem('userId') || 2;
+            try {
+                const response = await fetch(`/api/bets/historial/${userId}?page=0&size=5000`);
+                const result = await response.json();
+                procesarDatosFinancieros(result.data);
+            } catch (error) {
+                console.error("Error cargando finanzas:", error);
+            }
+        };
+
+        function procesarDatosFinancieros(apuestas) {
+    // Ordenamos cronológicamente usando el string de fecha directamente para evitar errores de Date
+    todasLasApuestas = apuestas.sort((a, b) => {
+        return a.fecha.localeCompare(b.fecha) || a.nro_movimiento - b.nro_movimiento;
+    });
+
+    console.log("Datos ordenados y listos para mostrar");
+    mostrarVistaGlobal();
+}
+
+function mostrarVistaGlobal() {
+    document.getElementById('view-controls').style.display = 'none';
+    
+    const balanceMensual = {};
+    const puntosGrafico = {};
+    let acumulado = 0;
+
+    todasLasApuestas.forEach(bet => {
+        // CORRECCIÓN: Usar nuestra función para evitar el salto de día
+        const fecha = obtenerFechaLocal(bet.fecha); 
+        const mesAnio = fecha.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+        
+        // Usamos el string original para el ID del gráfico para evitar desfases
+        const diaLabel = bet.fecha.split('T')[0]; 
+
+        const neta = calcularGananciaNeta(bet);
+        balanceMensual[mesAnio] = (balanceMensual[mesAnio] || 0) + neta;
+        
+        acumulado += neta;
+        puntosGrafico[diaLabel] = acumulado;
+    });
+
+    dibujarTablaMensual(balanceMensual);
+    dibujarGrafico(puntosGrafico, "Capital Total Acumulado");
+}
+
+function filtrarPorMes(mesSeleccionado) {
+    document.getElementById('view-controls').style.display = 'block';
+    document.getElementById('titulo-vista').innerText = `Detalle de ${mesSeleccionado}`;
+
+    const balanceDiario = {};
+    const puntosGrafico = {};
+    let acumuladoMes = 0;
+
+    const apuestasMes = todasLasApuestas.filter(bet => {
+        const fecha = obtenerFechaLocal(bet.fecha);
+        const mesAnio = fecha.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+        return mesAnio === mesSeleccionado;
+    });
+
+    apuestasMes.forEach(bet => {
+        const fecha = obtenerFechaLocal(bet.fecha);
+        // Formateamos como DD/MM para la tabla
+        const diaLabel = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+        
+        const neta = calcularGananciaNeta(bet);
+
+        balanceDiario[diaLabel] = (balanceDiario[diaLabel] || 0) + neta;
+        acumuladoMes += neta;
+        puntosGrafico[diaLabel] = acumuladoMes;
+    });
+
+    dibujarTablaDiaria(balanceDiario, mesSeleccionado);
+    dibujarGrafico(puntosGrafico, `Ganancia Acumulada en ${mesSeleccionado.split(' ')[0]}`);
+}
+
+// --- FUNCIONES DE APOYO ---
+
+function calcularGananciaNeta(bet) {
+    const monto = parseFloat(bet.dinero);
+    const cuota = parseFloat(bet.cuota);
+    if (bet.resultados?.resultado === 'Ganador') return (monto * cuota) - monto;
+    if (bet.resultados?.resultado === 'Perdedor') return -monto;
+    return 0;
+}
+
+function dibujarTablaMensual(data) {
+    const contenedor = document.getElementById('tabla-mensual');
+    contenedor.innerHTML = "";
+    Object.entries(data).reverse().forEach(([mes, valor]) => {
+        const clase = valor >= 0 ? 'pos' : 'neg';
+        contenedor.innerHTML += `
+            <tr onclick="filtrarPorMes('${mes}')" style="cursor:pointer; transition: 0.3s;" onmouseover="this.style.background='#2a2a2a'" onmouseout="this.style.background='transparent'">
+                <td style="text-transform: capitalize; padding: 12px 10px;">${mes} 🔍</td>
+                <td style="text-align: right;" class="${clase}">${valor >= 0 ? '+' : ''}$${valor.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+}
+
+function dibujarTablaDiaria(data, mesAnioOriginal) {
+    const contenedor = document.getElementById('tabla-mensual');
+    contenedor.innerHTML = "";
+    
+    // El objeto 'data' aquí tiene { "06/02": valor, ... }
+    Object.entries(data).forEach(([dia, valor]) => {
+        const clase = valor >= 0 ? 'pos' : 'neg';
+        // Añadimos el evento onclick para bajar al nivel de detalle del día
+        contenedor.innerHTML += `
+            <tr onclick="filtrarPorDia('${dia}', '${mesAnioOriginal}')" style="cursor:pointer; transition: 0.3s;" onmouseover="this.style.background='#2a2a2a'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 12px 10px;">Día ${dia} 🔍</td>
+                <td style="text-align: right;" class="${clase}">${valor >= 0 ? '+' : ''}$${valor.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+}
+
+function filtrarPorDia(diaSeleccionado, mesAnioOriginal) {
+    // diaSeleccionado viene como "06/02"
+    document.getElementById('view-controls').style.display = 'block';
+    document.getElementById('titulo-vista').innerText = `Detalle del Día ${diaSeleccionado}`;
+
+    // 1. Filtramos las apuestas del día exacto
+    const apuestasDia = todasLasApuestas.filter(bet => {
+        const fechaObj = obtenerFechaLocal(bet.fecha);
+        const diaLabel = fechaObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+        const mesAnio = fechaObj.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+        
+        return diaLabel === diaSeleccionado && mesAnio === mesAnioOriginal;
+    });
+
+    console.log(`Apuestas encontradas para el día ${diaSeleccionado}:`, apuestasDia.length);
+
+    if (apuestasDia.length === 0) {
+        console.warn("No se encontraron datos para los criterios seleccionados.");
+        return;
+    }
+
+    // 2. Preparar el gráfico de crecimiento por movimientos
+    const puntosGrafico = {};
+    let acumuladoDia = 0;
+
+    // Ordenar por nro_movimiento para que la línea crezca bien
+    apuestasDia.sort((a, b) => a.nro_movimiento - b.nro_movimiento);
+
+    apuestasDia.forEach(bet => {
+        const neta = calcularGananciaNeta(bet);
+        acumuladoDia += neta;
+        // El eje X mostrará "M1", "M2", etc.
+        puntosGrafico[`M${bet.nro_movimiento}`] = acumuladoDia;
+    });
+
+    // 3. Actualizar la tabla lateral con las apuestas individuales
+    const contenedor = document.getElementById('tabla-mensual');
+    contenedor.innerHTML = "";
+    
+    apuestasDia.forEach(bet => {
+        const neta = calcularGananciaNeta(bet);
+        const clase = neta >= 0 ? 'pos' : 'neg';
+        contenedor.innerHTML += `
+            <tr style="border-bottom: 1px solid #2a2a2a;">
+                <td style="padding: 10px; font-size: 0.85rem;">
+                    <strong>M${bet.nro_movimiento}</strong> - ${bet.deportes?.nombre_deporte || 'S/D'}<br>
+                    <small style="color:#777">${bet.opciones?.opcion || ''}</small>
+                </td>
+                <td style="text-align: right;" class="${clase}">
+                    ${neta >= 0 ? '+' : ''}$${neta.toFixed(2)}
+                </td>
+            </tr>
+        `;
+    });
+
+    dibujarGrafico(puntosGrafico, `Evolución del Día ${diaSeleccionado}`);
+}
+
+function restaurarVistaGlobal() {
+    mostrarVistaGlobal();
+}
+
+function dibujarGrafico(puntos, etiqueta) {
+    const ctx = document.getElementById('chartEvolucion').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Object.keys(puntos),
+            datasets: [{
+                label: etiqueta,
+                data: Object.values(puntos),
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { grid: { color: '#333' }, ticks: { color: '#aaa' } },
+                x: { ticks: { color: '#aaa' } }
+            }
+        }
+    });
+}
+function obtenerFechaLocal(fechaStr) {
+    // fechaStr es "2026-02-06T00:00:00+00:00"
+    // Extraemos solo "2026-02-06"
+    const partes = fechaStr.split('T')[0].split('-');
+    // Creamos la fecha: Año, Mes (0-11), Día
+    return new Date(partes[0], partes[1] - 1, partes[2]);
+}
+    </script>
+</body>
+</html>

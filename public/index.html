@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betflow - Login</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #121212; color: white; margin: 0; }
+        .login-card { background: #1e1e1e; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; max-width: 350px; text-align: center; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #007bff; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .logo { color: #007bff; font-size: 2rem; margin-bottom: 1rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="logo">Betflow</div>
+        <p>Ingresa para gestionar tus apuestas</p>
+        <input type="email" id="email" placeholder="Correo electrónico">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="login()">Entrar</button>
+        <p id="mensaje" style="color: #ff4444; font-size: 0.8rem; margin-top: 10px;"></p>
+    </div>
+
+    <script>
+        async function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const mensaje = document.getElementById('mensaje');
+
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            mensaje.style.color = "#44ff44";
+            mensaje.innerText = "¡Bienvenido! Redirigiendo...";
+            
+            // Guardamos el ID del usuario para usarlo en el dashboard
+            localStorage.setItem('userId', data.id_usuario_interno);
+            
+            // Redirigir después de 1 segundo
+            setTimeout(() => {
+                window.location.href = '/home.html';
+            }, 1000);
+        } else {
+            mensaje.innerText = data.error;
+        }
+    } catch (error) {
+        mensaje.innerText = "Error al conectar con el servidor";
+    }
+}
+    </script>
+</body>
+</html> 

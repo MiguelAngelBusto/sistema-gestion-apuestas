@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Betflow - Generador de Reportes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; padding: 40px; }
+        .config-card { background: #1e1e1e; padding: 25px; border-radius: 12px; max-width: 600px; margin: auto; border: 1px solid #333; }
+        .group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #aaa; }
+        select, input { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 4px; box-sizing: border-box; }
+        .btn-generate { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .btn-generate:hover { background: #0056b3; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .checkbox-group input { width: auto; }
+        /* Canvas oculto para renderizar el gráfico del PDF */
+        #tempChartCanvas { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="config-card">
+        <h2 style="margin-top:0">Configuración del Reporte</h2>
+        
+        <div class="group">
+            <label>Tipo de Filtro</label>
+            <select id="tipoFiltro" onchange="toggleInputs()">
+                <option value="mes">Por Mes</option>
+                <option value="rango">Rango de Fechas</option>
+            </select>
+        </div>
+
+        <div id="input-mes" class="group">
+            <label>Seleccionar Mes</label>
+            <input type="month" id="filtroMes">
+        </div>
+
+        <div id="input-rango" class="group" style="display:none">
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1">
+                    <label>Desde</label>
+                    <input type="date" id="fechaDesde">
+                </div>
+                <div style="flex:1">
+                    <label>Hasta</label>
+                    <input type="date" id="fechaHasta">
+                </div>
+            </div>
+        </div>
+
+        <div class="group">
+            <label class="checkbox-group">
+                <input type="checkbox" id="incluirMovimientos" checked> 
+                Incluir detalle de movimientos (Hoja 2)
+            </label>
+        </div>
+
+        <button class="btn-generate" onclick="generarReporte()">Descargar Reporte PDF</button>
+    </div>
+
+    <canvas id="tempChartCanvas" width="800" height="400"></canvas>
+
+    <script>
+        let todasLasApuestas = [];
+
+        window.onload = async () => {
+            const userId = localStorage.getItem('userId') || 2;
+            const response = await fetch(`/api/bets/historial/${userId}?page=0&size=5000`);
+            const res = await response.json();
+            todasLasApuestas = res.data || [];
+        };
+
+        function toggleInputs() {
+            const tipo = document.getElementById('tipoFiltro').value;
+            document.getElementById('input-mes').style.display = tipo === 'mes' ? 'block' : 'none';
+            document.getElementById('input-rango').style.display = tipo === 'rango' ? 'block' : 'none';
+        }
+
+        function obtenerFechaLocal(fechaStr) {
+            const partes = fechaStr.split('T')[0].split('-');
+            return new Date(partes[0], partes[1] - 1, partes[2]);
+        }
+
+async function generarReporte() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const tipo = document.getElementById('tipoFiltro').value;
+    
+    // 1. Filtrar y determinar el texto del periodo
+    let filtradas = [];
+    let textoPeriodo = "";
+
+    if(tipo === 'mes') {
+        const mesVal = document.getElementById('filtroMes').value; // "2026-02"
+        const [anio, mes] = mesVal.split('-');
+        const nombreMes = new Date(anio, mes - 1).toLocaleString('es-ES', { month: 'long' });
+        textoPeriodo = `Mes: ${nombreMes} ${anio}`;
+        filtradas = todasLasApuestas.filter(b => b.fecha.startsWith(mesVal));
+    } else {
+        const desde = document.getElementById('fechaDesde').value;
+        const hasta = document.getElementById('fechaHasta').value;
+        textoPeriodo = `Periodo: ${desde.split('-').reverse().join('/')} al ${hasta.split('-').reverse().join('/')}`;
+        filtradas = todasLasApuestas.filter(b => {
+            const f = b.fecha.split('T')[0];
+            return f >= desde && f <= hasta;
+        });
+    }
+
+    if(filtradas.length === 0) return alert("No hay datos en este rango");
+    filtradas.sort((a,b) => a.nro_movimiento - b.nro_movimiento);
+
+    // 2. Cálculos (igual que antes)
+    let apostado = 0, neta = 0, ganadas = 0;
+    filtradas.forEach(b => {
+        const monto = parseFloat(b.dinero);
+        apostado += monto;
+        const esGanador = b.resultados?.resultado === 'Ganador';
+        neta += esGanador ? (monto * parseFloat(b.cuota) - monto) : -monto;
+        if(esGanador) ganadas++;
+    });
+
+    // 3. Diseño Hoja 1
+    doc.setFontSize(20);
+    doc.setTextColor(40, 40, 40);
+    doc.text("REPORTE DE RENDIMIENTO", 20, 22);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text(textoPeriodo.toUpperCase(), 20, 30); // Aquí se muestra el rango de fechas
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 35, 190, 35);
+
+    // Bloque de Stats con mejor alineación
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("RESUMEN DE CUENTA", 20, 48);
+    
+    doc.setFontSize(10);
+    doc.text(`Total Apostado: $${apostado.toLocaleString()}`, 25, 58);
+    doc.text(`Ganancia Neta: $${neta.toLocaleString()}`, 25, 65);
+    doc.text(`Tasa Efectividad: ${((ganadas/filtradas.length)*100).toFixed(1)}%`, 110, 58);
+    doc.text(`Cantidad Apuestas: ${filtradas.length}`, 110, 65);
+
+    // 4. Imagen del Gráfico Profesional
+    const chartImg = await crearImagenGrafico(filtradas);
+    doc.addImage(chartImg, 'PNG', 15, 75, 180, 90);
+
+    // ... resto del código para la Hoja 2 (Tabla) se mantiene igual ...
+    
+    doc.save(`Reporte_Betflow_${textoPeriodo.replace(/ /g, '_')}.pdf`);
+}
+
+// Función del gráfico mejorada estéticamente
+function crearImagenGrafico(datos) {
+    return new Promise((resolve) => {
+        const canvas = document.getElementById('tempChartCanvas');
+        let acumulado = 0;
+        const labels = datos.map(b => `M${b.nro_movimiento}`);
+        const valores = datos.map(b => {
+            const monto = parseFloat(b.dinero);
+            acumulado += (b.resultados?.resultado === 'Ganador') ? (monto * parseFloat(b.cuota) - monto) : -monto;
+            return acumulado;
+        });
+
+        const tempChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Balance de Capital',
+                    data: valores,
+                    borderColor: '#2c3e50', // Gris oscuro profesional
+                    backgroundColor: 'rgba(44, 62, 80, 0.05)', // Sombreado ligero
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3, // Curva suave
+                    pointRadius: 2,
+                    pointBackgroundColor: '#2c3e50'
+                }]
+            },
+            options: {
+                animation: false,
+                devicePixelRatio: 2, // Mejora la resolución
+                scales: {
+                    y: { grid: { color: '#f0f0f0' } },
+                    x: { grid: { display: false } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        setTimeout(() => {
+            const imgData = canvas.toDataURL('image/png');
+            tempChart.destroy();
+            resolve(imgData);
+        }, 600);
+    });
+}
+
+    </script>
+</body>
+</html>

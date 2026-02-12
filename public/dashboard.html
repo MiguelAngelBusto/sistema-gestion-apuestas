@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betflow - Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: white; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: #1e1e1e; border-radius: 8px; overflow: hidden; font-size: 0.9rem; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #2a2a2a; color: #007bff; text-transform: uppercase; font-size: 0.8rem; }
+        tr:hover { background: #252525; }
+        
+        /* Colores para los resultados */
+        /* Busca este sector en tu <style> y reemplázalo */
+.res-pendiente { color: #ffca28; font-weight: bold; }
+.res-ganador { color: #4caf50; font-weight: bold; }   /* Antes decía ganada */
+.res-perdedor { color: #f44336; font-weight: bold; }  /* Antes decía perdida */
+        .btn-logout { background: #ff4444; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-back { background: #333; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; }
+        .options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Betflow - Historial de Apuestas</h1>
+                        <div>
+                <a href="home.html" class="btn-back">← Inicio</a>
+            </div>
+        </div>
+<div id="controles-edicion" style="margin-bottom: 10px; display: none;">
+    <button onclick="actualizarEstadoMasivo(1)" style="background: #4caf50; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">✅ Marcar Ganadas</button>
+    <button onclick="actualizarEstadoMasivo(2)" style="background: #ff9800; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">❌ Marcar Perdidas</button>
+    <button onclick="toggleModoEdicion()" style="background: #666; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">Cancelar</button>
+</div>
+
+<div style="margin-bottom: 15px; display: flex; gap: 10px;">
+    <button id="btn-activar-edicion" onclick="toggleModoEdicion()" style="background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">
+        ⚙️ Gestionar Apuestas (Pendientes)
+    </button>
+    
+    <button id="btn-eliminar-siempre" onclick="prepararEliminacion()" style="background: #f44336; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">
+        🗑️ Eliminar Seleccionados
+    </button>
+</div>
+        <table>
+            <div class="pagination-container" style="margin-top: 20px; display: flex; justify-content: center; gap: 15px; align-items: center;">
+    <button id="btn-prev" onclick="cambiarPagina(-1)" style="padding: 8px 15px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer;">Anterior</button>
+    <span id="info-pagina">Página 1</span>
+    <button id="btn-next" onclick="cambiarPagina(1)" style="padding: 8px 15px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer;">Siguiente</button>
+</div>
+<thead>
+    <tr>
+        <th class="col-check" style="display: none; width: 30px;">
+            <input type="checkbox" id="check-all" onclick="seleccionarTodo(this)">
+        </th>
+        <th>Fecha</th>
+        <th>Mov</th>
+        <th>Evento</th>
+        <th>Tipo</th>
+        <th>Opción</th>
+        <th>Cuota</th>
+        <th>Dinero</th>
+        <th>Resultado</th>
+        <th>Ganancia</th>
+    </tr>
+</thead>
+            <tbody id="tabla-cuerpo">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+let paginaActual = 0;
+const filasPorPagina = 10;
+
+async function cargarHistorial(page = 0) {
+    const userId = localStorage.getItem('userId') || 2;
+    const cuerpo = document.getElementById('tabla-cuerpo');
+    
+    try {
+        // 1. Llamada a la API con paginación
+        const response = await fetch(`/api/bets/historial/${userId}?page=${page}&size=${filasPorPagina}`);
+        const result = await response.json();
+        
+        // Importante: Tu backend ahora devuelve { data: [...], total: X }
+        const data = result.data;
+        const total = result.total;
+
+        cuerpo.innerHTML = ""; 
+
+        data.forEach(bet => {
+            // --- Lógica de procesamiento de datos ---
+            const fechaLimpia = bet.fecha.split('T')[0]; 
+            const partes = fechaLimpia.split('-');
+            const fechaFormateada = `${partes[2]}/${partes[1]}`;
+            
+            const evento = `${bet.local?.nombre || 'S/D'} vs ${bet.visitante?.nombre || 'S/D'}`;
+            const tipo = bet.tipo_apuestas ? bet.tipo_apuestas.tipo : 'N/A';
+            const opcion = bet.opciones ? bet.opciones.opcion : 'N/A';
+            const resultado = bet.resultados ? bet.resultados.resultado : 'Pendiente';
+
+            let gananciaNeta = 0;
+            let colorGanancia = "#ffca28";
+
+            if (resultado === 'Ganador') {
+                gananciaNeta = (bet.dinero * bet.cuota) - bet.dinero;
+                colorGanancia = "#4caf50";
+            } else if (resultado === 'Perdedor') {
+                gananciaNeta = -bet.dinero;
+                colorGanancia = "#f44336";
+            } else {
+                gananciaNeta = 0;
+                colorGanancia = "#777";
+            }
+
+            const resClase = `res-${resultado.toLowerCase()}`;
+            
+            const fila = `
+                <tr data-estado="${resultado}">
+                    <td class="col-check" style="display: none;">
+                        <input type="checkbox" class="bet-checkbox" value="${bet.nro_movimiento}">
+                    </td>
+                    <td>${fechaFormateada}</td>
+                    <td><strong>M${bet.nro_movimiento}</strong></td>
+                    <td>${evento}</td>
+                    <td>${tipo}</td>
+                    <td>${opcion}</td>
+                    <td>${bet.cuota}</td>
+                    <td>$${bet.dinero.toFixed(2)}</td> 
+                    <td class="${resClase}">${resultado}</td>
+                    <td style="font-weight: bold; color: ${colorGanancia}">
+                        ${gananciaNeta > 0 ? '+' : ''}$${gananciaNeta.toFixed(2)}
+                    </td>
+                </tr>
+            `;
+            cuerpo.innerHTML += fila;
+        });
+
+        // 2. Actualizar indicadores de interfaz
+        document.getElementById('info-pagina').innerText = `Página ${page + 1} de ${Math.ceil(total / filasPorPagina)}`;
+        document.getElementById('btn-prev').disabled = page === 0;
+        document.getElementById('btn-next').disabled = (page + 1) * filasPorPagina >= total;
+
+        // Si el modo edición estaba activo, nos aseguramos de que las nuevas filas respeten la vista
+        if (modoEdicion) aplicarFiltroEdicion();
+
+    } catch (error) {
+        console.error("Error cargando historial:", error);
+    }
+}
+
+function cambiarPagina(direccion) {
+    paginaActual += direccion;
+    cargarHistorial(paginaActual);
+}
+
+// Único punto de entrada
+window.onload = () => cargarHistorial(paginaActual);
+
+function logout() {
+    localStorage.clear();
+    window.location.href = '/';
+}
+
+let modoEdicion = false;
+
+function toggleModoEdicion() {
+    modoEdicion = !modoEdicion;
+    
+    const controles = document.getElementById('controles-edicion');
+    const btnActivar = document.getElementById('btn-activar-edicion');
+    
+    controles.style.display = modoEdicion ? 'flex' : 'none';
+    btnActivar.style.display = modoEdicion ? 'none' : 'block';
+
+    const celdasCheck = document.querySelectorAll('.col-check');
+    celdasCheck.forEach(celda => {
+        celda.style.display = modoEdicion ? 'table-cell' : 'none';
+    });
+
+    // FILTRADO ROBUSTO
+    const filas = document.querySelectorAll('#tabla-cuerpo tr');
+    
+    filas.forEach(fila => {
+        const estado = fila.getAttribute('data-estado'); // Leemos el atributo
+        
+        if (modoEdicion) {
+            // Solo mostramos si el estado es exactamente Pendiente
+            if (estado === 'Pendiente') {
+                fila.style.display = 'table-row';
+            } else {
+                fila.style.display = 'none';
+            }
+        } else {
+            // Al salir, mostramos todo
+            fila.style.display = 'table-row';
+        }
+    });
+}
+function seleccionarTodo(source) {
+    // Buscamos solo los checkboxes de las filas visibles
+    const checkboxes = document.querySelectorAll('#tabla-cuerpo tr:not([style*="display: none"]) .bet-checkbox');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = source.checked;
+    });
+}
+async function actualizarEstadoMasivo(nuevoEstadoId) {
+        const seleccionados = document.querySelectorAll('.bet-checkbox:checked');
+        const ids = Array.from(seleccionados).map(cb => parseInt(cb.value));
+
+        if (ids.length === 0) {
+            alert("Por favor, selecciona al menos una apuesta.");
+            return;
+        }
+
+        const confirmacion = confirm(`¿Estás seguro de marcar ${ids.length} apuesta(s) como ${nuevoEstadoId === 2 ? 'Perdida' : 'Ganada'}?`);
+        if (!confirmacion) return;
+
+        try {
+            const response = await fetch('/api/bets/actualizar-estado', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids, nuevoEstadoId })
+            });
+
+            if (response.ok) {
+                alert("¡Actualización exitosa!");
+                location.reload(); 
+            } else {
+                alert("Error al actualizar las apuestas.");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+async function eliminarSeleccionados() {
+    const seleccionados = document.querySelectorAll('.bet-checkbox:checked');
+    const ids = Array.from(seleccionados).map(cb => parseInt(cb.value));
+
+    if (ids.length === 0) {
+        alert("Por favor, selecciona las apuestas que deseas eliminar.");
+        return;
+    }
+
+    const confirmacion = confirm(`¿Estás TOTALMENTE seguro de eliminar ${ids.length} apuesta(s)? Esta acción no se puede deshacer.`);
+    if (!confirmacion) return;
+
+    try {
+        const response = await fetch('/api/bets/eliminar-masivo', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        });
+
+        if (response.ok) {
+            alert("Apuestas eliminadas correctamente.");
+            location.reload(); 
+        } else {
+            alert("Error al intentar eliminar.");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+function prepararEliminacion() {
+    // 1. Mostramos la columna de checkboxes (si estaba oculta)
+    const celdasCheck = document.querySelectorAll('.col-check');
+    celdasCheck.forEach(celda => {
+        celda.style.display = 'table-cell';
+    });
+    
+    // 2. Si ya hay algo seleccionado, ejecutamos la eliminación
+    const seleccionados = document.querySelectorAll('.bet-checkbox:checked');
+    if (seleccionados.length > 0) {
+        eliminarSeleccionados(); // Esta es la función que ya creamos antes
+    } else {
+        alert("Selecciona las filas que deseas borrar marcando los cuadros a la izquierda.");
+    }
+}
+    </script>
+</body>
+</html>

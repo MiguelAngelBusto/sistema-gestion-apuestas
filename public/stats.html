@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Betflow - Estadísticas</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .nav-header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+        
+        .grid-stats { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+            gap: 20px; 
+        }
+
+        .card { 
+            background: #1e1e1e; 
+            padding: 25px; 
+            border-radius: 12px; 
+            text-align: center;
+            border: 1px solid #333;
+        }
+
+        .card h3 { color: #aaa; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 15px; }
+        .card .value { font-size: 2.2rem; font-weight: bold; }
+        
+        .btn-back { background: #333; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; }
+        
+        /* Colores dinámicos */
+        .pos { color: #4caf50; }
+        .neg { color: #f44336; }
+        .neu { color: #ffca28; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-header">
+            <h1>Mis Estadísticas</h1>
+            <a href="home.html" class="btn-back">← Volver al Dashboard</a>
+        </div>
+        <div class="filters-panel" style="background: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #333;">
+    <h4 style="margin-top: 0; color: #007bff;">🔍 Filtros de Análisis</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+        
+        <div>
+            <label style="display:block; font-size: 0.8rem; color: #aaa;">Desde:</label>
+            <input type="date" id="filter-desde" style="width: 100%; background: #2a2a2a; color: white; border: 1px solid #444; padding: 8px; border-radius: 4px;">
+        </div>
+        <div>
+            <label style="display:block; font-size: 0.8rem; color: #aaa;">Hasta:</label>
+            <input type="date" id="filter-hasta" style="width: 100%; background: #2a2a2a; color: white; border: 1px solid #444; padding: 8px; border-radius: 4px;">
+        </div>
+
+        <div>
+            <label style="display:block; font-size: 0.8rem; color: #aaa;">Deporte:</label>
+<select id="filter-deporte" onchange="actualizarEquiposSegunDeporte(); actualizarStats();" style="width: 100%; background: #2a2a2a; color: white; border: 1px solid #444; padding: 8px; border-radius: 4px;">
+    <option value="">Todos</option>
+</select>
+        </div>
+
+        <div>
+            <label style="display:block; font-size: 0.8rem; color: #aaa;">Equipo:</label>
+            <select id="filter-equipo" onchange="actualizarStats()" style="width: 100%; background: #2a2a2a; color: white; border: 1px solid #444; padding: 8px; border-radius: 4px;">
+                <option value="">Todos</option>
+            </select>
+        </div>
+
+        <div>
+            <label style="display:block; font-size: 0.8rem; color: #aaa;">Tipo Apuesta:</label>
+            <select id="filter-tipo" onchange="actualizarStats()" style="width: 100%; background: #2a2a2a; color: white; border: 1px solid #444; padding: 8px; border-radius: 4px;">
+                <option value="">Todos</option>
+            </select>
+        </div>
+    </div>
+    
+    <button onclick="actualizarStats()" style="margin-top: 15px; width: 100%; background: #007bff; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        Aplicar Filtros Acumulados
+    </button>
+</div>
+        <div class="grid-stats">
+            <div class="card">
+                <h3>Total Apostado</h3>
+                <div id="total-apostado" class="value">$0.00</div>
+            </div>
+            <div class="card">
+                <h3>Ganancia Neta</h3>
+                <div id="ganancia-neta" class="value">$0.00</div>
+            </div>
+            <div class="card">
+                <h3>Efectividad</h3>
+                <div id="efectividad" class="value">0%</div>
+            </div>
+            <div class="card">
+                <h3>Yield (Retorno)</h3>
+                <div id="yield" class="value">0%</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+let todasLasApuestas = [];
+
+window.onload = async () => {
+    const userId = localStorage.getItem('userId') || 2;
+    try {
+        const response = await fetch(`/api/bets/historial/${userId}?page=0&size=5000`);
+        const result = await response.json();
+        
+        // Guardamos el array 'data' que me mostraste
+        todasLasApuestas = result.data || [];
+
+        // 1. Poblamos los filtros iniciales
+        poblarFiltrosIniciales();
+        
+        // 2. Ejecutamos el cálculo inicial
+        actualizarStats();
+
+    } catch (error) {
+        console.error("Error al cargar datos:", error);
+    }
+};
+
+function poblarFiltrosIniciales() {
+    const selDeporte = document.getElementById('filter-deporte');
+    const selTipo = document.getElementById('filter-tipo');
+
+    // Extraer valores únicos de tus datos reales
+    const deportes = [...new Set(todasLasApuestas.map(b => b.deportes?.nombre_deporte))].filter(d => d).sort();
+    const tipos = [...new Set(todasLasApuestas.map(b => b.tipo_apuestas?.tipo))].filter(t => t).sort();
+    
+    // Llenar select de Deportes
+    selDeporte.innerHTML = '<option value="">Todos los Deportes</option>';
+    deportes.forEach(d => {
+        selDeporte.innerHTML += `<option value="${d}">${d}</option>`;
+    });
+
+    // Llenar select de Tipos de Apuesta
+    selTipo.innerHTML = '<option value="">Todos los Tipos</option>';
+    tipos.forEach(t => {
+        selTipo.innerHTML += `<option value="${t}">${t}</option>`;
+    });
+
+    // Llamar a la actualización de equipos
+    actualizarEquiposSegunDeporte();
+}
+
+function actualizarEquiposSegunDeporte() {
+    const selDeporte = document.getElementById('filter-deporte').value;
+    const selEquipo = document.getElementById('filter-equipo');
+    
+    // Filtrar apuestas por deporte seleccionado
+    const filtradas = !selDeporte 
+        ? todasLasApuestas 
+        : todasLasApuestas.filter(b => b.deportes?.nombre_deporte === selDeporte);
+
+    // Obtener nombres únicos de equipos
+    const listaEquipos = new Set();
+    filtradas.forEach(b => {
+        if (b.local?.nombre) listaEquipos.add(b.local.nombre);
+        if (b.visitante?.nombre) listaEquipos.add(b.visitante.nombre);
+    });
+
+    const equiposSorted = Array.from(listaEquipos).sort();
+
+    // Llenar el select
+    selEquipo.innerHTML = '<option value="">Todos los Equipos</option>';
+    equiposSorted.forEach(e => {
+        selEquipo.innerHTML += `<option value="${e}">${e}</option>`;
+    });
+}
+
+function actualizarStats() {
+    const fDesde = document.getElementById('filter-desde').value;
+    const fHasta = document.getElementById('filter-hasta').value;
+    const fDeporte = document.getElementById('filter-deporte').value;
+    const fEquipo = document.getElementById('filter-equipo').value;
+    const fTipo = document.getElementById('filter-tipo').value;
+
+    // FILTRO ACUMULATIVO
+    const filtradas = todasLasApuestas.filter(b => {
+        const fechaBet = b.fecha.split('T')[0];
+        const matchFecha = (!fDesde || fechaBet >= fDesde) && (!fHasta || fechaBet <= fHasta);
+        const matchDeporte = !fDeporte || b.deportes?.nombre_deporte === fDeporte;
+        const matchEquipo = !fEquipo || (b.local?.nombre === fEquipo || b.visitante?.nombre === fEquipo);
+        const matchTipo = !fTipo || b.tipo_apuestas?.tipo === fTipo;
+
+        return matchFecha && matchDeporte && matchEquipo && matchTipo;
+    });
+
+    // Cálculos
+    let apostado = 0, neta = 0, ganadas = 0, totalFin = 0;
+
+    filtradas.forEach(b => {
+        const monto = parseFloat(b.dinero);
+        const cuota = parseFloat(b.cuota);
+        const res = b.resultados?.resultado;
+
+        if (res === 'Ganador') {
+            apostado += monto;
+            neta += (monto * cuota) - monto;
+            ganadas++;
+            totalFin++;
+        } else if (res === 'Perdedor') {
+            apostado += monto;
+            neta -= monto;
+            totalFin++;
+        }
+    });
+
+    // Pintar en pantalla
+    document.getElementById('total-apostado').innerText = `$${apostado.toFixed(2)}`;
+    const netaEl = document.getElementById('ganancia-neta');
+    netaEl.innerText = `${neta >= 0 ? '+' : ''}$${neta.toFixed(2)}`;
+    netaEl.className = `value ${neta >= 0 ? 'pos' : 'neg'}`;
+    
+    document.getElementById('efectividad').innerText = `${totalFin > 0 ? ((ganadas / totalFin) * 100).toFixed(1) : 0}%`;
+    document.getElementById('yield').innerText = `${apostado > 0 ? ((neta / apostado) * 100).toFixed(1) : 0}%`;
+}
+</script>
+</body>
+</html>

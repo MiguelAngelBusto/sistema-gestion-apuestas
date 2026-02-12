@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betflow - Nueva Apuesta</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; padding: 20px; }
+        .form-container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 2rem; border-radius: 12px; }
+        .field-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; }
+        label { margin-bottom: 0.5rem; color: #007bff; font-weight: bold; }
+        select, input { padding: 10px; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: white; }
+        .inline-check { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; margin-top: 5px; color: #aaa; }
+        .hidden { display: none; }
+        .ganancia-potencial { margin-top: 1rem; padding: 10px; background: #004d40; border-radius: 4px; text-align: center; font-weight: bold; }
+        .btn-guardar { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Registrar Apuesta</h2>
+        
+        <div class="field-group">
+            <label>Deporte</label>
+            <select id="select-deporte" onchange="actualizarDependientes(); toggleManual('deporte')">
+                <option value="">Selecciona un deporte...</option>
+                </select>
+            <div class="inline-check">
+                <input type="checkbox" id="check-deporte-manual" onchange="toggleManual('deporte')">
+                <span>No está en la lista (Cargar nuevo)</span>
+            </div>
+            <input type="text" id="input-deporte-manual" class="hidden" placeholder="Nombre del nuevo deporte">
+        </div>
+        <div class="field-group">
+    <label>Campeonato</label>
+    <select id="select-campeonato" onchange="toggleManual('campeonato')">
+        <option value="">Selecciona un campeonato...</option>
+    </select>
+    <div class="inline-check">
+        <input type="checkbox" id="check-campeonato-manual" onchange="toggleManual('campeonato')">
+        <span>Nuevo Campeonato</span>
+    </div>
+    <input type="text" id="input-campeonato-manual" class="hidden" placeholder="Nombre del campeonato">
+</div>
+
+<div class="field-group">
+    <label>Equipo Local</label>
+    <select id="select-equipo-local">
+        <option value="">Selecciona equipo local...</option>
+    </select>
+
+    <div class="inline-check">
+        <input type="checkbox" id="check-equipo-local-manual" onchange="toggleManual('equipo-local')">
+        <span>Nuevo Equipo (Local)</span>
+    </div>
+
+    <input type="text" id="input-equipo-local-manual" class="hidden" placeholder="Escribe el nombre del equipo local">
+</div>
+
+<div class="field-group">
+    <label>Equipo Visitante</label>
+    <select id="select-equipo-visitante">
+        <option value="">Selecciona equipo visitante...</option>
+    </select>
+
+    <div class="inline-check">
+        <input type="checkbox" id="check-equipo-visitante-manual" onchange="toggleManual('equipo-visitante')">
+        <span>Nuevo Equipo (Vis)</span>
+    </div>
+
+    <input type="text" id="input-equipo-visitante-manual" class="hidden" placeholder="Escribe el nombre del equipo">
+</div>
+<div class="field-group">
+    <label>Tipo de Apuesta (ej: 1x2, Goles)</label>
+    <select id="select-tipo-apuesta" onchange="actualizarOpciones(); toggleManual('tipo-apuesta')">
+        <option value="">Selecciona tipo...</option>
+    </select>
+    <div class="inline-check">
+        <input type="checkbox" id="check-tipo-apuesta-manual" onchange="toggleManual('tipo-apuesta')">
+        <span>Nuevo Tipo</span>
+    </div>
+    <input type="text" id="input-tipo-apuesta-manual" class="hidden" placeholder="Ej: Total de Goles">
+</div>
+
+<div class="field-group">
+    <label>Opción Elegida (ej: Local, +2.5)</label>
+    <select id="select-opcion"> 
+        <option value="">Selecciona opción...</option>
+    </select>
+    <div class="inline-check">
+        <input type="checkbox" id="check-opcion-manual" onchange="toggleManual('opcion')">
+        <span>Nueva Opción</span>
+    </div>
+    <input type="text" id="input-opcion-manual" class="hidden" placeholder="Ej: Más de 2.5">
+</div>
+        <div class="field-group">
+            <label>Fecha del Evento</label>
+            <input type="date" id="fecha-apuesta">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="field-group" style="flex: 1;">
+                <label>Cuota</label>
+                <input type="number" id="cuota" step="0.001" min="1.001" placeholder="Ej: 1.325" oninput="calcularGanancia()">
+            </div>
+            <div class="field-group" style="flex: 1;">
+                <label>Monto</label>
+                <input type="number" id="monto" step="0.01" min="0.01" placeholder="Ej: 500.00" oninput="calcularGanancia()">
+            </div>
+        </div>
+
+        <div id="ganancia-box" class="ganancia-potencial hidden">
+            Ganancia Potencial: $<span id="valor-ganancia">0.00</span>
+        </div>
+
+        <button class="btn-guardar" onclick="guardarApuesta()">Guardar Apuesta</button>
+    </div>
+
+    <script>
+let recursosGlobales = {}; 
+
+window.onload = async () => {
+    try {
+        const res = await fetch('/api/data/resources');
+        recursosGlobales = await res.json(); 
+        
+        console.log("DATOS RECUPERADOS:", recursosGlobales);
+
+        const selectDeporte = document.getElementById('select-deporte');
+        // Usamos los nombres exactos que vienen de tu controlador
+        if (recursosGlobales.deportes) {
+            recursosGlobales.deportes.forEach(d => {
+                const opt = document.createElement('option');
+                // IMPORTANTE: Verifica si es id_deporte o solo id
+                opt.value = d.id_deporte || d.id; 
+                opt.textContent = d.nombre_deporte || d.nombre;
+                selectDeporte.appendChild(opt);
+            });
+        }
+    } catch (error) {
+        alert("Error crítico cargando datos: " + error.message);
+    }
+};
+
+function actualizarDependientes() {
+    const deporteId = document.getElementById('select-deporte').value;
+    
+    // Selectores a limpiar
+    const selectCamp = document.getElementById('select-campeonato');
+    const selectEqLocal = document.getElementById('select-equipo-local');
+    const selectEqVis = document.getElementById('select-equipo-visitante');
+    const selectTipo = document.getElementById('select-tipo-apuesta');
+    const selectOpcion = document.getElementById('select-opcion');
+
+    // Limpiar todos los selectores dependientes
+    [selectCamp, selectEqLocal, selectEqVis, selectTipo, selectOpcion].forEach(s => {
+        if(s) s.innerHTML = '<option value="">Selecciona...</option>';
+    });
+
+    if (!deporteId) return;
+
+    // 1. Llenar Campeonatos
+    if (recursosGlobales.campeonatos) {
+        const campsFiltrados = recursosGlobales.campeonatos.filter(c => (c.id_deporte || c.deporte_id) == deporteId);
+        campsFiltrados.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id_campeonato || c.id;
+            opt.textContent = c.nombre_campeonato || c.nombre;
+            selectCamp.appendChild(opt);
+        });
+    }
+
+    // 2. Llenar Equipos (Local y Visitante)
+    if (recursosGlobales.equipos) {
+        const eqsFiltrados = recursosGlobales.equipos.filter(e => (e.id_deporte || e.deporte_id) == deporteId);
+        eqsFiltrados.forEach(e => {
+            const id = e.id_equipo || e.id;
+            const nombre = e.nombre;
+            
+            const optL = document.createElement('option');
+            optL.value = id; optL.textContent = nombre;
+            selectEqLocal.appendChild(optL);
+
+            const optV = document.createElement('option');
+            optV.value = id; optV.textContent = nombre;
+            selectEqVis.appendChild(optV);
+        });
+    }
+
+    // 3. Llenar Tipos de Apuesta (Ej: 1x2, Goles)
+    if (recursosGlobales.tipo_apuestas) {
+        const tiposFiltrados = recursosGlobales.tipo_apuestas.filter(t => (t.id_deporte || t.deporte_id) == deporteId);
+        tiposFiltrados.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id_tipo || t.id;
+            opt.textContent = t.tipo || t.nombre;
+            selectTipo.appendChild(opt);
+        });
+    }
+}
+
+function actualizarOpciones() {
+    const tipoId = document.getElementById('select-tipo-apuesta').value;
+    const selectOpcion = document.getElementById('select-opcion');
+    
+    // Limpiar opciones previas
+    selectOpcion.innerHTML = '<option value="">Selecciona...</option>';
+
+    if (!tipoId || !recursosGlobales.opciones) return;
+
+    // Filtrar opciones por el ID del tipo de apuesta seleccionado
+    const opcionesFiltradas = recursosGlobales.opciones.filter(o => (o.id_tipo) == tipoId);
+    
+    opcionesFiltradas.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.id_opciones || o.id;
+        opt.textContent = o.opcion || o.nombre;
+        selectOpcion.appendChild(opt);
+    });
+}
+function toggleManual(tipo) {
+    // Buscamos los elementos por su ID dinámico
+    const checkbox = document.getElementById(`check-${tipo}-manual`);
+    const inputTexto = document.getElementById(`input-${tipo}-manual`);
+    const selectLista = document.getElementById(`select-${tipo}`);
+
+    if (checkbox.checked) {
+        // MODO MANUAL ACTIVADO
+        inputTexto.classList.remove('hidden'); // Mostramos el campo de texto
+        selectLista.disabled = true;           // Inhabilitamos la lista
+        selectLista.value = "";                // Limpiamos la selección de la lista
+    } else {
+        // MODO LISTA ACTIVADO
+        inputTexto.classList.add('hidden');    // Escondemos el campo de texto
+        inputTexto.value = "";                 // Limpiamos lo que se escribió
+        selectLista.disabled = false;          // Habilitamos la lista
+    }
+}
+
+function calcularGanancia() {
+    // Capturamos los valores
+    const cuotaInput = document.getElementById('cuota');
+    const montoInput = document.getElementById('monto');
+    
+    const cuota = parseFloat(cuotaInput.value) || 0;
+    const monto = parseFloat(montoInput.value) || 0;
+    const box = document.getElementById('ganancia-box');
+    const valorGanancia = document.getElementById('valor-ganancia');
+
+    // REGLA 4: Cuota positiva, no cero, no excesiva (ej: max 1000)
+    const cuotaValida = cuota > 1 && cuota < 1000;
+    
+    // REGLA 5: Monto positivo y máximo 2 decimales
+    const montoValido = monto > 0 && /^\d+(\.\d{1,2})?$/.test(montoInput.value);
+
+    if (cuotaValida && montoValido) {
+        const total = (cuota * monto).toFixed(2);
+        valorGanancia.innerText = total;
+        box.style.background = "#004d40"; // Color verde éxito
+        box.classList.remove('hidden');
+        return true; 
+    } else {
+        box.classList.add('hidden');
+        return false;
+    }
+}
+
+async function guardarApuesta() {
+    // 1. Recopilar datos (Incluyendo Tipo y Opción)
+    const datos = {
+        deporte: document.getElementById('check-deporte-manual').checked 
+                 ? document.getElementById('input-deporte-manual').value 
+                 : document.getElementById('select-deporte').value,
+        
+        campeonato: document.getElementById('check-campeonato-manual').checked 
+                    ? document.getElementById('input-campeonato-manual').value 
+                    : document.getElementById('select-campeonato').value,
+        
+        equipo_local: document.getElementById('check-equipo-local-manual').checked 
+                      ? document.getElementById('input-equipo-local-manual').value 
+                      : document.getElementById('select-equipo-local').value,
+        
+        equipo_visitante: document.getElementById('check-equipo-visitante-manual').checked 
+                          ? document.getElementById('input-equipo-visitante-manual').value 
+                          : document.getElementById('select-equipo-visitante').value,
+
+        tipo_apuesta: document.getElementById('check-tipo-apuesta-manual').checked 
+                      ? document.getElementById('input-tipo-apuesta-manual').value 
+                      : document.getElementById('select-tipo-apuesta').value,
+
+        opcion_elegida: document.getElementById('check-opcion-manual').checked 
+                        ? document.getElementById('input-opcion-manual').value 
+                        : document.getElementById('select-opcion').value,
+        
+        fecha: document.getElementById('fecha-apuesta').value,
+        cuota: parseFloat(document.getElementById('cuota').value),
+        monto: parseFloat(document.getElementById('monto').value),
+        id_usuario: 2 
+    };
+
+    // 2. Validación básica
+    if (!datos.deporte || !datos.monto || !datos.cuota || !datos.fecha) {
+        alert("Por favor, completa los campos obligatorios.");
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/apuestas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+
+        const resultado = await res.json();
+        if (res.ok) {
+            alert(resultado.message); 
+            window.location.href = "home.html"; 
+        } else {
+            alert("Error: " + resultado.error);
+        }
+    } catch (error) {
+        alert("Error de conexión con el servidor.");
+    }
+}
+
+    </script>
+</body>
+</html>

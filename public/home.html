@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betflow - Inicio</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .menu-container { text-align: center; background: #1e1e1e; padding: 3rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { color: #007bff; margin-bottom: 2rem; }
+        .options { display: flex; gap: 20px; }
+        .card { 
+            background: #2a2a2a; padding: 2rem; border-radius: 8px; cursor: pointer; 
+            transition: transform 0.2s, background 0.2s; width: 150px; text-decoration: none; color: white;
+        }
+        .card:hover { transform: translateY(-5px); background: #333; border: 1px solid #007bff; }
+        .card i { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+        .btn-logout { margin-top: 2rem; background: none; border: 1px solid #ff4444; color: #ff4444; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <h1>Bienvenido a Betflow</h1>
+        <div class="options">
+            <a href="/nueva-apuesta.html" class="card">
+                <span>➕</span>
+                <h3>Nueva Apuesta</h3>
+            </a>
+            <a href="/dashboard.html" class="card">
+                <span>📊</span>
+                <h3>Ver Historial</h3>
+            </a>
+            <a href="/stats.html" class="card">
+                <span>📈</span>
+                <h3>Estadísticas</h3>
+            </a>
+            <a href="/finanzas.html" class="card">
+                <span>💰</span>
+                <h3>Finanzas</h3>
+            </a>
+            <a href="/reporte.html" class="card">
+                <span>📄</span>
+                <h3>Reporte</h3>
+            </a>
+        </div>
+        <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+    </div>
+
+    <script>
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
