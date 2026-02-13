@@ -12,6 +12,7 @@
         button:hover { background: #0056b3; }
         .logo { color: #007bff; font-size: 2rem; margin-bottom: 1rem; font-weight: bold; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="login-card">
@@ -24,38 +25,53 @@
     </div>
 
     <script>
+        // 2. INICIALIZAMOS EL CLIENTE PARA EL FRONTEND
+        // Usamos el nombre 'supabaseApp' para ser consistentes con tu nueva-apuesta.html
+        const _url = 'https://svxohzuimappgarlrdmj.supabase.co';
+        const _key = 'sb_publishable_i7RoPGZJBH94idhLllNgWg_lepex86i';
+        const supabaseApp = window.supabase.createClient(_url, _key);
+
         async function login() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const mensaje = document.getElementById('mensaje');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const mensaje = document.getElementById('mensaje');
 
-    try {
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
 
-        const data = await response.json();
+                const data = await response.json();
 
-        if (response.ok) {
-            mensaje.style.color = "#44ff44";
-            mensaje.innerText = "¡Bienvenido! Redirigiendo...";
-            
-            // Guardamos el ID del usuario para usarlo en el dashboard
-            localStorage.setItem('userId', data.id_usuario_interno);
-            
-            // Redirigir después de 1 segundo
-            setTimeout(() => {
-                window.location.href = '/home.html';
-            }, 1000);
-        } else {
-            mensaje.innerText = data.error;
+                if (response.ok) {
+                    // 3. ESTABLECER LA SESIÓN EN EL NAVEGADOR
+                    // Esto guarda los tokens en el LocalStorage automáticamente
+                    const { error: sessionError } = await supabaseApp.auth.setSession({
+                        access_token: data.session.access_token,
+                        refresh_token: data.session.refresh_token
+                    });
+
+                    if (sessionError) throw new Error("Error al sincronizar sesión.");
+
+                    mensaje.style.color = "#44ff44";
+                    mensaje.innerText = "¡Bienvenido! Redirigiendo...";
+                    
+                    // Guardamos el ID del usuario interno por conveniencia
+                    localStorage.setItem('userId', data.id_usuario_interno);
+                    
+                    setTimeout(() => {
+                        window.location.href = '/home.html';
+                    }, 1000);
+                } else {
+                    mensaje.innerText = data.error || "Credenciales incorrectas";
+                }
+            } catch (error) {
+                console.error("Error en login:", error);
+                mensaje.innerText = "Error al conectar con el servidor";
+            }
         }
-    } catch (error) {
-        mensaje.innerText = "Error al conectar con el servidor";
-    }
-}
     </script>
 </body>
-</html> 
+</html>
