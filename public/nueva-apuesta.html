@@ -5,94 +5,292 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Betflow - Nueva Apuesta</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; padding: 20px; }
-        .form-container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 2rem; border-radius: 12px; }
-        .field-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; }
-        label { margin-bottom: 0.5rem; color: #007bff; font-weight: bold; }
-        select, input { padding: 10px; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: white; }
-        .inline-check { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; margin-top: 5px; color: #aaa; }
-        .hidden { display: none; }
-        .ganancia-potencial { margin-top: 1rem; padding: 10px; background: #004d40; border-radius: 4px; text-align: center; font-weight: bold; }
-        .btn-guardar { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
-    </style>
+    :root {
+        --primary: #007bff;
+        --bg: #0f1113;
+        --card-bg: #1a1d21;
+        --border: #2d3139;
+        --text-dim: #9ba1a6;
+    }
+
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background: var(--bg); 
+        color: white; 
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden; 
+    }
+
+    .form-container { 
+width: 90%; /* Aumentamos el ancho relativo */
+max-width: 1300px; /* Expandimos el límite horizontal */
+height: 90%;        
+max-height: 900px;
+background: var(--card-bg); 
+padding: 30px 45px; /* Más padding interno para que no se vea apretado */        border-radius: 12px; 
+border-radius: 16px; 
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); /* Sombra para darle profundidad */    }
+
+    header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 12px; /* Menos margen */
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 8px;
+    }
+    
+    h2 { margin: 0; font-size: 1.2rem; color: var(--primary); }
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px 50px; /* Aumentamos el espacio entre columnas y filas */
+    margin-top: 20px;
+}
+
+    .field-group {
+        margin-top: 5px;
+    border-color: var(--primary); /* Resaltar que es modo manual */ 
+        display: flex; flex-direction: column; gap: 2px; 
+    } /* Menos gap interno */
+    
+/* 3. Etiquetas más legibles */
+label { 
+    font-size: 0.85rem; /* Un poco más grandes */
+    font-weight: 700; 
+    color: var(--text-dim); 
+    margin-bottom: 6px;
+}    
+select, input { 
+    padding: 12px 16px; /* Más alto y aireado */
+    border-radius: 8px; 
+    border: 1px solid var(--border); 
+    background: #212529; 
+    color: white; 
+    font-size: 1.1rem; /* Aumentamos el tamaño de la letra para legibilidad */
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+select:focus, input:focus {
+    border-color: var(--primary);
+    background: #2a2e33;
+    outline: none;
+}
+
+    .inline-check { font-size: 0.6rem; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    
+/* 5. Caja de ganancia más destacada */
+.ganancia-box { 
+    grid-column: span 2;
+    padding: 15px;
+    font-size: 1.1rem;
+    background: rgba(68, 255, 68, 0.1);
+    border: 1px solid #44ff44;
+}
+
+   /* 4. Botón de Guardar imponente */
+.btn-guardar { 
+    grid-column: span 2;
+    padding: 18px; /* Mucho más alto */
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    font-weight: 700;
+    font-size: 1.2rem; /* Letra más grande */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    margin-top: 25px;
+    transition: transform 0.1s;
+}
+
+.btn-guardar:hover {
+    background: #0056b3;
+    transform: translateY(-2px);
+}
+
+    .hidden { display: none; }
+
+@media (max-width: 768px) {
+    /* 1. Ajuste del Contenedor Principal */
+    body {
+        align-items: flex-start;
+        overflow-y: auto;
+        padding: 0; /* Eliminamos bordes externos en móvil */
+    }
+
+    .form-container {
+        width: 100%;
+        height: 100vh; /* Ocupa toda la pantalla */
+        max-height: none;
+        border-radius: 0; /* Se siente como una App nativa */
+        padding: 20px;
+        border: none;
+    }
+
+    /* 2. Header más compacto */
+    header {
+        margin-bottom: 25px;
+    }
+    
+    h2 { font-size: 1.3rem; }
+
+    /* 3. Una sola columna real */
+    .main-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 20px; /* Más espacio entre grupos para que no se choquen */
+    }
+
+    /* 4. Estilo de los Campos y Links */
+    .field-group {
+        width: 100%;
+    }
+
+    /* Alineamos el label y el link de forma más limpia */
+    .field-group > div:first-child {
+        margin-bottom: 8px;
+    }
+
+    .action-link {
+        background: rgba(0, 123, 255, 0.1); /* Un fondo sutil azul */
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.6rem;
+        text-decoration: none !important;
+    }
+
+    /* 5. Inputs Grandes para dedos (Touch Friendly) */
+    select, input {
+        width: 100%;
+        padding: 14px 12px !important; /* Más altos */
+        font-size: 16px !important; /* Evita el zoom molesto en iPhone */
+        background: #212529;
+    }
+
+    /* 6. Fila de Cuota y Monto */
+    /* Para que estos dos no ocupen tanto espacio vertical, los ponemos juntos */
+    .field-group:has(#input-cuota), 
+    .field-group:has(#input-monto) {
+        width: 100%;
+    }
+
+    /* 7. Botón de Guardar */
+    .btn-guardar {
+        margin-top: 10px;
+        padding: 18px;
+        font-size: 1.1rem;
+        position: sticky; /* Se queda pegado abajo si el cel es chico */
+        bottom: 0;
+    }
+}
+
+.btn-volver:hover {
+    color: var(--primary) !important;
+    
+}
+.action-link {
+    font-size: 0.65rem;
+    color: var(--primary);
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: bold;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.action-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+</style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
     <div class="form-container">
-        <h2>Registrar Apuesta</h2>
-        
-        <div class="field-group">
-            <label>Deporte</label>
-            <select id="select-deporte" onchange="actualizarDependientes(); toggleManual('deporte')">
-                <option value="">Selecciona un deporte...</option>
-                </select>
-            <div class="inline-check">
-                <input type="checkbox" id="check-deporte-manual" onchange="toggleManual('deporte')">
-                <span>No está en la lista (Cargar nuevo)</span>
-            </div>
-            <input type="text" id="input-deporte-manual" class="hidden" placeholder="Nombre del nuevo deporte">
-        </div>
-        <div class="field-group">
-    <label>Campeonato</label>
-    <select id="select-campeonato" onchange="toggleManual('campeonato')">
-        <option value="">Selecciona un campeonato...</option>
-    </select>
-    <div class="inline-check">
-        <input type="checkbox" id="check-campeonato-manual" onchange="toggleManual('campeonato')">
-        <span>Nuevo Campeonato</span>
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <a href="home.html" style="text-decoration: none; color: var(--text-dim); font-size: 1.5rem; line-height: 1;">←</a>
+        <h2 style="margin: 0; font-size: 1.4rem; color: var(--primary);">Registrar Apuesta</h2>
     </div>
-    <input type="text" id="input-campeonato-manual" class="hidden" placeholder="Nombre del campeonato">
+    <span id="label-movimiento" style="background: var(--border); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; color: var(--primary); font-weight: bold;">M--</span>
+</header>
+    
+    <div class="main-grid">
+        <div class="field-group">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label>Deporte</label>
+        <span class="action-link" onclick="toggleManualDirecto('deporte')">¿No aparece?</span>
+    </div>
+    <select id="select-deporte" onchange="actualizarDependientes()">
+        <option value="">Selecciona...</option>
+    </select>
+    <input type="text" id="input-deporte-manual" class="hidden" placeholder="Escribir nuevo deporte...">
+</div>
+
+        <div class="field-group">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <label>Campeonato</label>
+        <span class="action-link" onclick="toggleManualDirecto('campeonato')">¿Nuevo Campeonato?</span>
+    </div>
+    <select id="select-campeonato">
+        <option value="">Selecciona...</option>
+    </select>
+    <input type="text" id="input-campeonato-manual" class="hidden" placeholder="Nombre de la Liga o Torneo">
 </div>
 
 <div class="field-group">
-    <label>Equipo Local</label>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <label>Equipo Local</label>
+        <span class="action-link" onclick="toggleManualDirecto('equipo-local')">¿No aparece?</span>
+    </div>
     <select id="select-equipo-local">
-        <option value="">Selecciona equipo local...</option>
+        <option value="">Selecciona...</option>
     </select>
-
-    <div class="inline-check">
-        <input type="checkbox" id="check-equipo-local-manual" onchange="toggleManual('equipo-local')">
-        <span>Nuevo Equipo (Local)</span>
-    </div>
-
-    <input type="text" id="input-equipo-local-manual" class="hidden" placeholder="Escribe el nombre del equipo local">
+    <input type="text" id="input-equipo-local-manual" class="hidden" placeholder="Nombre del Equipo Local">
 </div>
 
 <div class="field-group">
-    <label>Equipo Visitante</label>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <label>Equipo Visitante</label>
+        <span class="action-link" onclick="toggleManualDirecto('equipo-visitante')">¿No aparece?</span>
+    </div>
     <select id="select-equipo-visitante">
-        <option value="">Selecciona equipo visitante...</option>
+        <option value="">Selecciona...</option>
     </select>
-
-    <div class="inline-check">
-        <input type="checkbox" id="check-equipo-visitante-manual" onchange="toggleManual('equipo-visitante')">
-        <span>Nuevo Equipo (Vis)</span>
-    </div>
-
-    <input type="text" id="input-equipo-visitante-manual" class="hidden" placeholder="Escribe el nombre del equipo">
-</div>
-<div class="field-group">
-    <label>Tipo de Apuesta (ej: 1x2, Goles)</label>
-    <select id="select-tipo-apuesta" onchange="actualizarOpciones(); toggleManual('tipo-apuesta')">
-        <option value="">Selecciona tipo...</option>
-    </select>
-    <div class="inline-check">
-        <input type="checkbox" id="check-tipo-apuesta-manual" onchange="toggleManual('tipo-apuesta')">
-        <span>Nuevo Tipo</span>
-    </div>
-    <input type="text" id="input-tipo-apuesta-manual" class="hidden" placeholder="Ej: Total de Goles">
+    <input type="text" id="input-equipo-visitante-manual" class="hidden" placeholder="Nombre del Equipo Visitante">
 </div>
 
 <div class="field-group">
-    <label>Opción Elegida (ej: Local, +2.5)</label>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <label>Tipo de Apuesta</label>
+        <span class="action-link" onclick="toggleManualDirecto('tipo-apuesta')">¿Nuevo Tipo?</span>
+    </div>
+    <select id="select-tipo-apuesta" onchange="actualizarOpciones()">
+        <option value="">Selecciona...</option>
+    </select>
+    <input type="text" id="input-tipo-apuesta-manual" class="hidden" placeholder="Ej: Tiros de Esquina">
+</div>
+
+<div class="field-group">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <label>Opción Elegida</label>
+        <span class="action-link" onclick="toggleManualDirecto('opcion')">¿Nueva Opción?</span>
+    </div>
     <select id="select-opcion"> 
-        <option value="">Selecciona opción...</option>
+        <option value="">Selecciona...</option>
     </select>
-    <div class="inline-check">
-        <input type="checkbox" id="check-opcion-manual" onchange="toggleManual('opcion')">
-        <span>Nueva Opción</span>
-    </div>
-    <input type="text" id="input-opcion-manual" class="hidden" placeholder="Ej: Más de 2.5">
+    <input type="text" id="input-opcion-manual" class="hidden" placeholder="Ej: Más de 9.5">
 </div>
         <div class="field-group">
             <label>Fecha del Evento</label>
@@ -102,73 +300,105 @@
         <div style="display: flex; gap: 10px;">
             <div class="field-group" style="flex: 1;">
                 <label>Cuota</label>
-                <input type="number" id="cuota" step="0.001" min="1.001" placeholder="Ej: 1.325" oninput="calcularGanancia()">
+                <input type="number" id="cuota" step="0.001" placeholder="1.90" oninput="calcularGanancia()">
             </div>
             <div class="field-group" style="flex: 1;">
                 <label>Monto</label>
-                <input type="number" id="monto" step="0.01" min="0.01" placeholder="Ej: 500.00" oninput="calcularGanancia()">
+                <input type="number" id="monto" step="0.01" placeholder="500" oninput="calcularGanancia()">
             </div>
         </div>
 
-        <div id="ganancia-box" class="ganancia-potencial hidden">
-            Ganancia Potencial: $<span id="valor-ganancia">0.00</span>
+        <div id="ganancia-box" class="ganancia-box hidden">
+            Ganancia Potencial: <span>$<span id="valor-ganancia">0.00</span></span>
         </div>
 
         <button class="btn-guardar" onclick="guardarApuesta()">Guardar Apuesta</button>
     </div>
+</div>
 
     <script>
+// 1. Función genérica para ordenar alfabéticamente
+function ordenarDatos(lista, propiedad) {
+    if (!lista) return [];
+    return lista.sort((a, b) => {
+        const textoA = (a[propiedad] || "").toString().toLowerCase();
+        const textoB = (b[propiedad] || "").toString().toLowerCase();
+        return textoA.localeCompare(textoB);
+    });
+}
 window.onload = async () => {
-    // Usamos las llaves que ya conocemos
-    const _url = 'https://svxohzuimappgarlrdmj.supabase.co';
-    const _key = 'sb_publishable_i7RoPGZJBH94idhLllNgWg_lepex86i';
+    const t0 = performance.now();
+    const CACHE_KEY = 'betflow_recursos_cache';
+    const TIME_KEY = 'betflow_cache_time';
+    const selectDeporte = document.getElementById('select-deporte');
     
-    // Inicializamos supabaseApp usando el constructor de la librería (window.supabase)
-    if (window.supabase) {
-        supabaseApp = window.supabase.createClient(_url, _key);
-        console.log("✅ Betflow: Cliente inicializado sin conflictos.");
+    const cacheExistente = localStorage.getItem(CACHE_KEY);
+    const ultimoUpdate = localStorage.getItem(TIME_KEY);
+    const ahora = Date.now();
+    
+    // Si el cache tiene menos de 10 minutos, no pedimos nada a la red (ahorro de Vercel)
+    const cacheValido = ultimoUpdate && (ahora - ultimoUpdate < 10 * 60 * 1000);
+
+    if (cacheExistente) {
+        recursosGlobales = JSON.parse(cacheExistente);
+        poblarSelectores(recursosGlobales); // Función auxiliar para no repetir código
+        console.log("⚡ Cargado desde Cache Local");
     }
 
-    // Tu lógica de carga de recursos...
-    try {
-        const res = await fetch('/api/data/resources');
-        recursosGlobales = await res.json();
-        
-        const selectDeporte = document.getElementById('select-deporte');
-        if (recursosGlobales.deportes) {
-            recursosGlobales.deportes.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d.id_deporte; 
-                opt.textContent = d.nombre_deporte;
-                selectDeporte.appendChild(opt);
-            });
+    // Solo vamos a la red si el cache es viejo o no existe
+    if (!cacheValido) {
+        try {
+            console.log("🌐 Cache vencido o inexistente. Consultando Vercel...");
+            const res = await fetch('/api/data/resources');
+            const nuevosRecursos = await res.json();
+            
+            recursosGlobales = nuevosRecursos;
+            localStorage.setItem(CACHE_KEY, JSON.stringify(nuevosRecursos));
+            localStorage.setItem(TIME_KEY, ahora.toString());
+            
+            poblarSelectores(recursosGlobales);
+            console.log("✅ Datos actualizados desde Vercel");
+        } catch (error) {
+            console.error("Error en red:", error);
         }
-    } catch (error) {
-        console.error("Error cargando recursos:", error);
     }
+    
+    await cargarSiguienteMovimiento();
 };
 
+// Función auxiliar para mantener el código limpio
+function poblarSelectores(data) {
+    const selectDeporte = document.getElementById('select-deporte');
+    if (data.deportes) {
+        const deportesOrdenados = ordenarDatos(data.deportes, 'nombre_deporte');
+        selectDeporte.innerHTML = '<option value="">Selecciona...</option>';
+        deportesOrdenados.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id_deporte; 
+            opt.textContent = d.nombre_deporte;
+            selectDeporte.appendChild(opt);
+        });
+    }
+}
 function actualizarDependientes() {
     const deporteId = document.getElementById('select-deporte').value;
-    
-    // Selectores a limpiar
     const selectCamp = document.getElementById('select-campeonato');
     const selectEqLocal = document.getElementById('select-equipo-local');
     const selectEqVis = document.getElementById('select-equipo-visitante');
     const selectTipo = document.getElementById('select-tipo-apuesta');
     const selectOpcion = document.getElementById('select-opcion');
 
-    // Limpiar todos los selectores dependientes
+    // Limpiar selectores
     [selectCamp, selectEqLocal, selectEqVis, selectTipo, selectOpcion].forEach(s => {
         if(s) s.innerHTML = '<option value="">Selecciona...</option>';
     });
 
     if (!deporteId) return;
 
-    // 1. Llenar Campeonatos
+    // 1. Llenar Campeonatos (Ordenados)
     if (recursosGlobales.campeonatos) {
-        const campsFiltrados = recursosGlobales.campeonatos.filter(c => (c.id_deporte || c.deporte_id) == deporteId);
-        campsFiltrados.forEach(c => {
+        const filtrados = recursosGlobales.campeonatos.filter(c => (c.id_deporte || c.deporte_id) == deporteId);
+        ordenarDatos(filtrados, 'nombre_campeonato').forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id_campeonato || c.id;
             opt.textContent = c.nombre_campeonato || c.nombre;
@@ -176,27 +406,25 @@ function actualizarDependientes() {
         });
     }
 
-    // 2. Llenar Equipos (Local y Visitante)
+    // 2. Llenar Equipos (Ordenados)
     if (recursosGlobales.equipos) {
-        const eqsFiltrados = recursosGlobales.equipos.filter(e => (e.id_deporte || e.deporte_id) == deporteId);
-        eqsFiltrados.forEach(e => {
+        const filtrados = recursosGlobales.equipos.filter(e => (e.id_deporte || e.deporte_id) == deporteId);
+        // Usamos 'nombre' como propiedad de orden
+        ordenarDatos(filtrados, 'nombre').forEach(e => {
             const id = e.id_equipo || e.id;
-            const nombre = e.nombre;
-            
             const optL = document.createElement('option');
-            optL.value = id; optL.textContent = nombre;
+            optL.value = id; optL.textContent = e.nombre;
             selectEqLocal.appendChild(optL);
 
-            const optV = document.createElement('option');
-            optV.value = id; optV.textContent = nombre;
+            const optV = optL.cloneNode(true);
             selectEqVis.appendChild(optV);
         });
     }
 
-    // 3. Llenar Tipos de Apuesta (Ej: 1x2, Goles)
+    // 3. Llenar Tipos (Ordenados)
     if (recursosGlobales.tipo_apuestas) {
-        const tiposFiltrados = recursosGlobales.tipo_apuestas.filter(t => (t.id_deporte || t.deporte_id) == deporteId);
-        tiposFiltrados.forEach(t => {
+        const filtrados = recursosGlobales.tipo_apuestas.filter(t => (t.id_deporte || t.deporte_id) == deporteId);
+        ordenarDatos(filtrados, 'tipo').forEach(t => {
             const opt = document.createElement('option');
             opt.value = t.id_tipo || t.id;
             opt.textContent = t.tipo || t.nombre;
@@ -204,26 +432,35 @@ function actualizarDependientes() {
         });
     }
 }
-
 function actualizarOpciones() {
     const tipoId = document.getElementById('select-tipo-apuesta').value;
     const selectOpcion = document.getElementById('select-opcion');
-    
-    // Limpiar opciones previas
     selectOpcion.innerHTML = '<option value="">Selecciona...</option>';
 
     if (!tipoId || !recursosGlobales.opciones) return;
 
-    // Filtrar opciones por el ID del tipo de apuesta seleccionado
-    const opcionesFiltradas = recursosGlobales.opciones.filter(o => (o.id_tipo) == tipoId);
-    
-    opcionesFiltradas.forEach(o => {
+    const filtrados = recursosGlobales.opciones.filter(o => (o.id_tipo) == tipoId);
+    ordenarDatos(filtrados, 'opcion').forEach(o => {
         const opt = document.createElement('option');
         opt.value = o.id_opciones || o.id;
         opt.textContent = o.opcion || o.nombre;
         selectOpcion.appendChild(opt);
     });
 }
+async function cargarSiguienteMovimiento() {
+    const userId = localStorage.getItem('userId') || 2;
+    try {
+        const res = await fetch(`/api/bets/historial/${userId}?page=0&size=1`);
+        const result = await res.json();
+        // totalCount es un campo común en respuestas paginadas de Supabase
+        const proximoM = (result.totalCount || 0) + 1;
+        const badge = document.getElementById('label-movimiento'); // Asegúrate de tener este ID
+        if(badge) badge.innerText = `M${proximoM}`;
+    } catch (e) {
+        console.error("Error calculando Nro Movimiento");
+    }
+}
+
 function toggleManual(tipo) {
     // Buscamos los elementos por su ID dinámico
     const checkbox = document.getElementById(`check-${tipo}-manual`);
@@ -242,7 +479,27 @@ function toggleManual(tipo) {
         selectLista.disabled = false;          // Habilitamos la lista
     }
 }
+function toggleManualDirecto(tipo) {
+    const select = document.getElementById(`select-${tipo}`);
+    const input = document.getElementById(`input-${tipo}-manual`);
+    const link = event.target; 
 
+    if (input.classList.contains('hidden')) {
+        // ACTIVAR MODO MANUAL
+        input.classList.remove('hidden');
+        select.classList.add('hidden');
+        select.value = ""; // Limpia la selección para evitar conflictos al guardar
+        link.innerText = "Volver a lista";
+        link.style.color = "#9ba1a6"; // Color gris (text-dim)
+    } else {
+        // VOLVER A MODO LISTA
+        input.classList.add('hidden');
+        input.value = ""; // Limpia lo escrito
+        select.classList.remove('hidden');
+        link.innerText = "¿No aparece?";
+        link.style.color = "#007bff"; // Color azul (primary)
+    }
+}
 function calcularGanancia() {
     // Capturamos los valores
     const cuotaInput = document.getElementById('cuota');
@@ -274,63 +531,42 @@ async function guardarApuesta() {
     console.log("Iniciando proceso de guardado...");
     
     try {
-        // 1. Verificar sesión de Supabase
-        const { data: { session }, error: sessionError } = await supabaseApp.auth.getSession();
+        const auth_id_actual = localStorage.getItem('supabase_auth_id'); 
 
-        if (sessionError || !session) {
-            alert("Error: No se detecta una sesión activa. Por favor, reingresa.");
+        if (!auth_id_actual) {
+            alert("⚠️ Sesión no encontrada. Por favor reingresa.");
             return;
         }
 
-        const auth_id_actual = session.user.id;
-
-        // 2. Función interna robusta para recolectar datos
         const obtenerValor = (tipo) => {
-            const checkbox = document.getElementById(`check-${tipo}-manual`);
-            const isManual = checkbox ? checkbox.checked : false;
-
-            if (isManual) {
-                const input = document.getElementById(`input-${tipo}-manual`);
-                return input ? input.value.trim() : "";
-            } else {
-                const select = document.getElementById(`select-${tipo}`);
-                if (select && select.selectedIndex !== -1) {
-                    // Si la opción seleccionada es la de "Selecciona...", devolvemos vacío
-                    if (select.value === "") return "";
-                    return select.options[select.selectedIndex].text.trim();
-                }
-                return "";
+            const select = document.getElementById(`select-${tipo}`);
+            const inputManual = document.getElementById(`input-${tipo}-manual`);
+            
+            if (select && select.classList.contains('hidden')) {
+                return inputManual ? inputManual.value.trim() : "";
             }
+            return (select && select.value !== "") ? select.options[select.selectedIndex].text.trim() : "";
         };
 
-        // 3. Construcción del objeto de datos
+        // IDs CORREGIDOS para coincidir con tu HTML
         const datos = {
-            deporte: obtenerValor('deporte'),
+            auth_id: auth_id_actual, 
+            deporte: document.getElementById('select-deporte').options[document.getElementById('select-deporte').selectedIndex]?.text || "",
             campeonato: obtenerValor('campeonato'),
             equipo_local: obtenerValor('equipo-local'),
             equipo_visitante: obtenerValor('equipo-visitante'),
             tipo_apuesta: obtenerValor('tipo-apuesta'),
             opcion_elegida: obtenerValor('opcion'),
-            fecha: document.getElementById('fecha-apuesta').value,
-            cuota: parseFloat(document.getElementById('cuota').value),
-            monto: parseFloat(document.getElementById('monto').value),
-            auth_id: auth_id_actual,
-            movimiento: 1 // Según tu instrucción: "añadir 1 para cada apuesta, esta es M1"
+            fecha: document.getElementById('fecha-apuesta').value, // ID corregido
+            cuota: parseFloat(document.getElementById('cuota').value), // ID corregido
+            monto: parseFloat(document.getElementById('monto').value)  // ID corregido
         };
 
-        // 4. Validaciones básicas antes de enviar
-        if (!datos.deporte || !datos.equipo_local || !datos.monto || !datos.cuota || !datos.fecha) {
-            alert("Por favor, completa todos los campos obligatorios.");
-            console.log("Datos incompletos:", datos);
+        if (!datos.deporte || !datos.equipo_local || isNaN(datos.cuota) || isNaN(datos.monto)) {
+            alert("⚠️ Por favor completa Deporte, Local, Cuota y Monto correctamente.");
             return;
         }
 
-        if (isNaN(datos.cuota) || isNaN(datos.monto)) {
-            alert("La cuota y el monto deben ser números válidos.");
-            return;
-        }
-
-        // 5. Envío al Backend
         const res = await fetch('/api/apuestas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -340,18 +576,16 @@ async function guardarApuesta() {
         const resultado = await res.json();
 
         if (res.ok) {
-            alert("✅ " + resultado.message);
+            alert("✅ " + (resultado.message || "Movimiento registrado!"));
             window.location.href = "home.html";
         } else {
-            alert("❌ Error: " + (resultado.error || "No se pudo guardar la apuesta"));
+            throw new Error(resultado.error || "Error al procesar en el servidor");
         }
 
     } catch (error) {
-        console.error("Error crítico en guardarApuesta:", error);
-        alert("Ocurrió un error inesperado. Revisa la consola.");
+        console.error("❌ Error en guardarApuesta:", error.message);
+        alert("Error: " + error.message);
     }
-}
-
-    </script>
+}    </script>
 </body>
 </html>
