@@ -6,6 +6,49 @@
     <title>Betflow - Panel de Control</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
+        @media (max-width: 768px) {
+    .main-container {
+        flex-direction: column; /* Apila los paneles verticalmente */
+        padding: 10px 20px;
+        gap: 20px;
+    }
+
+    .panel-left {
+        flex: none;
+        width: 100%; /* El panel de estadísticas ocupa todo el ancho */
+        padding: 25px;
+        box-sizing: border-box;
+    }
+
+    .panel-right {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .options-grid {
+        /* Mantenemos 2 columnas pero con tarjetas más compactas */
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 12px;
+    }
+
+    /* En móvil, 'Nueva Apuesta' sigue siendo ancha pero ajustamos su padding */
+    .card-wide {
+        padding: 20px !important;
+    }
+
+    h1 {
+        font-size: 2rem; /* Título un poco más pequeño para celular */
+    }
+
+    .stat-value {
+        font-size: 1.5rem; /* Números más legibles en pantalla chica */
+    }
+
+    .top-bar {
+        padding: 10px 20px;
+    }
+}
+
         :root {
             --bg-color: #0d0f10;
             --card-bg: #1a1d21;
