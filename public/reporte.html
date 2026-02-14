@@ -68,11 +68,27 @@
         let todasLasApuestas = [];
 
         window.onload = async () => {
-            const userId = localStorage.getItem('userId') || 2;
-            const response = await fetch(`/api/bets/historial/${userId}?page=0&size=5000`);
-            const res = await response.json();
-            todasLasApuestas = res.data || [];
-        };
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        alert("Sesión no encontrada. Reingresa por favor.");
+        window.location.href = "index.html";
+        return;
+    }
+    
+    // Cambiamos a la ruta correcta que definimos antes
+    // Agregamos un console.log para ver qué llega
+    try {
+        const response = await fetch(`/api/bets/historial/${userId}?page=0&size=10000`);
+        const res = await response.json();
+        todasLasApuestas = res.data || [];
+        if(todasLasApuestas.length > 0) {
+        console.log("Estructura real de una apuesta:", todasLasApuestas[0]);
+    }
+        console.log(`✅ Se cargaron ${todasLasApuestas.length} apuestas.`);
+    } catch (e) {
+        console.error("Error cargando historial:", e);
+    }
+};
 
         function toggleInputs() {
             const tipo = document.getElementById('tipoFiltro').value;
@@ -90,28 +106,41 @@ async function generarReporte() {
     const doc = new jsPDF();
     const tipo = document.getElementById('tipoFiltro').value;
     
-    // 1. Filtrar y determinar el texto del periodo
     let filtradas = [];
     let textoPeriodo = "";
 
     if(tipo === 'mes') {
-        const mesVal = document.getElementById('filtroMes').value; // "2026-02"
-        const [anio, mes] = mesVal.split('-');
-        const nombreMes = new Date(anio, mes - 1).toLocaleString('es-ES', { month: 'long' });
-        textoPeriodo = `Mes: ${nombreMes} ${anio}`;
-        filtradas = todasLasApuestas.filter(b => b.fecha.startsWith(mesVal));
-    } else {
-        const desde = document.getElementById('fechaDesde').value;
-        const hasta = document.getElementById('fechaHasta').value;
-        textoPeriodo = `Periodo: ${desde.split('-').reverse().join('/')} al ${hasta.split('-').reverse().join('/')}`;
+        const mesVal = document.getElementById('filtroMes').value; // Ejemplo: "2026-02"
+        if (!mesVal) return alert("Por favor, selecciona un mes");
+
+        textoPeriodo = `Mes: ${mesVal}`;
+        
         filtradas = todasLasApuestas.filter(b => {
-            const f = b.fecha.split('T')[0];
-            return f >= desde && f <= hasta;
+            // Extraemos solo el YYYY-MM de la fecha de la apuesta
+            const fechaLimpia = b.fecha.substring(0, 7); 
+            return fechaLimpia === mesVal;
+        });
+    } else {
+        const desde = document.getElementById('fechaDesde').value; // "YYYY-MM-DD"
+        const hasta = document.getElementById('fechaHasta').value;
+        
+        if (!desde || !hasta) return alert("Selecciona ambas fechas");
+
+        textoPeriodo = `Rango: ${desde} al ${hasta}`;
+        
+        filtradas = todasLasApuestas.filter(b => {
+            // Cortamos la fecha de la apuesta para que sea solo YYYY-MM-DD
+            const fechaApuesta = b.fecha.split('T')[0]; 
+            return fechaApuesta >= desde && fechaApuesta <= hasta;
         });
     }
 
-    if(filtradas.length === 0) return alert("No hay datos en este rango");
-    filtradas.sort((a,b) => a.nro_movimiento - b.nro_movimiento);
+    // DEBUG: Para ver en consola cuántas pasaron el filtro
+    console.log(`Filtradas para el reporte: ${filtradas.length} de ${todasLasApuestas.length}`);
+
+    if(filtradas.length === 0) {
+        return alert("No hay datos que coincidan con el filtro seleccionado.");
+    }    filtradas.sort((a,b) => a.nro_movimiento - b.nro_movimiento);
 
     // 2. Cálculos (igual que antes)
     let apostado = 0, neta = 0, ganadas = 0;
@@ -150,8 +179,55 @@ async function generarReporte() {
     const chartImg = await crearImagenGrafico(filtradas);
     doc.addImage(chartImg, 'PNG', 15, 75, 180, 90);
 
-    // ... resto del código para la Hoja 2 (Tabla) se mantiene igual ...
+   if (document.getElementById('incluirMovimientos').checked) {
+        doc.addPage(); // Forzamos una nueva hoja
+        
+        doc.setFontSize(16);
+        doc.text("DETALLE DE MOVIMIENTOS", 20, 20);
+
+const filasTabla = filtradas.map(b => {
+    const monto = parseFloat(b.dinero || 0);
+    const cuota = parseFloat(b.cuota || 0);
+    const esGanador = b.resultados?.resultado === 'Ganador';
     
+    // Cálculo de la ganancia de esta apuesta
+    const gananciaIndividual = esGanador ? monto * (cuota - 1) : -monto;
+
+    return [
+        `M${b.nro_movimiento}`,
+        b.fecha.split('T')[0],
+        `${b.local?.nombre || 'S/D'} vs ${b.visitante?.nombre || 'S/D'}`,
+        `$${monto.toLocaleString('es-AR', {minimumFractionDigits: 2})}`,
+        cuota.toFixed(2),
+        { 
+            content: `$${gananciaIndividual.toLocaleString('es-AR', {minimumFractionDigits: 2})}`,
+            styles: { textColor: esGanador ? [0, 128, 0] : [200, 0, 0] } // Verde si gana, rojo si pierde
+        },
+        b.resultados?.resultado || 'Pendiente'
+    ];
+});
+
+doc.autoTable({
+    startY: 30,
+    head: [['Mov', 'Fecha', 'Evento', 'Monto', 'Cuota', 'Ganancia', 'Resultado']],
+    body: filasTabla,
+    theme: 'striped',
+    headStyles: { fillColor: [44, 62, 80], halign: 'center' },
+    styles: { fontSize: 7, cellPadding: 2 },
+    columnStyles: {
+        0: { cellWidth: 10 }, 
+        1: { cellWidth: 20 }, 
+        2: { cellWidth: 45 }, // Evento
+        3: { halign: 'right', cellWidth: 22 }, // Monto
+        4: { halign: 'center', cellWidth: 12 }, // Cuota
+        5: { halign: 'right', cellWidth: 22 }, // Ganancia (Nueva!)
+        6: { halign: 'center' } 
+    },
+    margin: { top: 30 }
+});
+    }
+    // --- FIN DE LA HOJA 2 ---
+
     doc.save(`Reporte_Betflow_${textoPeriodo.replace(/ /g, '_')}.pdf`);
 }
 
