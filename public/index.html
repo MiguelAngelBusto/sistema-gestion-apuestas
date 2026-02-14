@@ -5,12 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Betflow - Login</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #121212; color: white; margin: 0; }
-        .login-card { background: #1e1e1e; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #007bff; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        /* Base y Centrado */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; /* Cambiamos height por min-height por si el teclado móvil desplaza el contenido */
+            background: #121212; 
+            color: white; 
+            margin: 0; 
+        }
+
+        /* Card Adaptable */
+        .login-card { 
+            background: #1e1e1e; 
+            padding: 2.5rem 1.5rem; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            width: 90%; /* Ocupa el 90% en móviles */
+            max-width: 380px; /* No crece más de esto en PC */
+            text-align: center; 
+        }
+
+        .logo { 
+            color: #007bff; 
+            font-size: 2.5rem; 
+            margin-bottom: 0.5rem; 
+            font-weight: bold; 
+            letter-spacing: -1px;
+        }
+
+        p { color: #aaa; margin-bottom: 1.5rem; }
+
+        /* Inputs Optimizados para Pulgar */
+        input { 
+            width: 100%; 
+            padding: 14px; /* Más alto para facilitar el toque */
+            margin: 8px 0; 
+            border-radius: 8px; 
+            border: 1px solid #333; 
+            background: #2a2a2a; 
+            color: white; 
+            box-sizing: border-box; 
+            font-size: 16px; /* EVITA EL ZOOM AUTOMÁTICO EN iOS */
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        input:focus { border-color: #007bff; }
+
+        /* Botón Táctil */
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background: #007bff; 
+            border: none; 
+            color: white; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background 0.3s, transform 0.1s;
+        }
+
+        button:active { transform: scale(0.98); } /* Feedback visual al tocarlo */
+
         button:hover { background: #0056b3; }
-        .logo { color: #007bff; font-size: 2rem; margin-bottom: 1rem; font-weight: bold; }
+
+        #mensaje { color: #ff4444; font-size: 0.9rem; margin-top: 15px; min-height: 1.2rem; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
